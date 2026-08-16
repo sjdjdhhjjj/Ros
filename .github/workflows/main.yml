@@ -23,7 +23,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --noconsole agent_universal.py
+        pyinstaller --onefile --noconsole app/agent_universal.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
