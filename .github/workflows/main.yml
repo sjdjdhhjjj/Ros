@@ -1,10 +1,10 @@
-name: Build All Executables
+name: Build Complete All-In-One Release
 
 on: [push]
 
 jobs:
   build-windows:
-    name: Build All for Windows
+    name: Build All Masters, Agents and Assets for Windows
     runs-on: windows-latest
 
     steps:
@@ -21,17 +21,30 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
 
-    - name: Build all Python scripts
+    - name: Build all Python scripts (Masters & Agents)
       run: |
-        mkdir -p dist_all
-        # 遍历 app 目录下的所有 python 文件并打包
+        mkdir -p release_pack/executables
+        
+        # 遍历 app 目录下的所有 python 文件进行独立打包
         foreach ($file in Get-ChildItem -Path "app" -Filter "*.py") {
             Write-Host "Compiling: $($file.Name)"
-            pyinstaller --onefile --noconsole --distpath ./dist_all "app/$($file.Name)"
+            # 使用 --onefile 打包所有脚本，放入 executables 目录
+            pyinstaller --onefile --noconsole --distpath ./release_pack/executables "app/$($file.Name)"
         }
 
-    - name: Upload all artifacts
+    - name: Copy necessary assets and certificates
+      run: |
+        # 将证书和配置文件（如 cert.pem, key.pem 等）一同复制到发布包中，确保功能完整
+        if (Test-Path "app/*.pem") {
+            Copy-Item "app/*.pem" "release_pack/"
+        }
+        if (Test-Path "app/*.txt") {
+            Copy-Item "app/*.txt" "release_pack/"
+        }
+        Write-Host "Assets copied successfully."
+
+    - name: Upload complete release package
       uses: actions/upload-artifact@v4
       with:
-        name: all-executables
-        path: dist_all/*.exe
+        name: Complete-C2-Release-Package
+        path: release_pack/
