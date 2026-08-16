@@ -25,21 +25,25 @@ jobs:
       run: |
         mkdir -p release_pack/executables
         
-        # 遍历 app 目录下的所有 python 文件进行独立打包
-        foreach ($file in Get-ChildItem -Path "app" -Filter "*.py") {
-            Write-Host "Compiling: $($file.Name)"
-            # 使用 --onefile 打包所有脚本，放入 executables 目录
+        # 1. 编译所有客户端（agent开头的脚本）：带 --noconsole（无控制台，后台静默运行）
+        foreach ($file in Get-ChildItem -Path "app" -Filter "agent_*.py") {
+            Write-Host "Compiling Agent (No Console): $($file.Name)"
             pyinstaller --onefile --noconsole --distpath ./release_pack/executables "app/$($file.Name)"
+        }
+        
+        # 2. 编译所有主控端（c2_开头的脚本）：不带 --noconsole（保留控制台，支持交互和输入）
+        foreach ($file in Get-ChildItem -Path "app" -Filter "c2_*.py") {
+            Write-Host "Compiling Master (With Console): $($file.Name)"
+            pyinstaller --onefile --distpath ./release_pack/executables "app/$($file.Name)"
         }
 
     - name: Copy necessary assets and certificates
       run: |
-        # 将证书和配置文件（如 cert.pem, key.pem 等）一同复制到发布包中，确保功能完整
         if (Test-Path "app/*.pem") {
-            Copy-Item "app/*.pem" "release_pack/"
+            Copy-Item "app/*.pem" "release_pack/executables/"
         }
         if (Test-Path "app/*.txt") {
-            Copy-Item "app/*.txt" "release_pack/"
+            Copy-Item "app/*.txt" "release_pack/executables/"
         }
         Write-Host "Assets copied successfully."
 
